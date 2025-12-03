@@ -24,10 +24,8 @@ If you've used the original BARF from SPT Forge — this is the modern continuat
 
 - 🆕 **Fully updated for SPT 4.0**
 - 📦 **Adds purchasable loot crates** to the Ref trader
-- 🏷️ **Configurable crate data** (price, loyalty level, rewards, open animation IDs)
+- 🏷️ **Configurable crate data** (price, loyalty level, rewards)
 - 🔄 **Auto-generated assort entries** (items, barter schemes, loyalty levels)
-- 🧩 **Supports both list-based & dictionary-based config formats**
-- 🔧 **No manual JSON edits required**
 - ⚡ **Safe reload on server start**
 - 🔒 **Compatible with all existing profiles**
 
@@ -45,9 +43,9 @@ If you've used the original BARF from SPT Forge — this is the modern continuat
 3. You should see:
 
 ```
-SPT/user/mods/BARF/
-    BARF.dll
-    config/
+SPT/user/mods/BoxesAtRef/
+    BoxesAtRef.dll
+    database/
 ```
 
 Restart your server and enjoy.
@@ -59,19 +57,20 @@ Restart your server and enjoy.
 Configuration lives here:
 
 ```
-SPT/user/mods/BARF/config/items.json
+SPT/user/mods/BoxesAtRef/database/itemsToAdd.json
+SPT/user/mods/BoxesAtRef/database/crateContents.json
 ```
 
-Two valid JSON formats:
+Editing the items:
 
-### **1) List Format**
+### **1) Indivdual item**
 ```json
 {
   "items": [
     {
-      "_id": "crate_unique_id",
-      "_tpl": "template_id",
-      "openID": "open_animation_id",
+      "_id": "crate_unique_id", // Don't touch
+      "_tpl": "template_id", // Don't touch
+      "openID": "open_animation_id", // Don't touch
       "price": 50,
       "buyRestrictionMax": 1,
       "loyaltyLevel": 1
@@ -80,18 +79,16 @@ Two valid JSON formats:
 }
 ```
 
-### **2) Dictionary Format**
+### **2) Crate contents**
 ```json
 {
   "66573310a1657263d816a139": {
     "rewardCount": 3,
     "foundInRaid": true,
-    "rewardTplPool": []
+    "rewardTplPool": [] // Add MongoIds here
   }
 }
 ```
-
-BARF automatically detects and loads either structure.
 
 ---
 
@@ -101,48 +98,17 @@ BARF automatically detects and loads either structure.
 - .NET **9.0** SDK
 - A local SPT 4.0 install (for reference assemblies)
 
-### Configure paths (inside .csproj)
-```xml
-<PropertyGroup>
-    <SPTPath>F:\SPT_4.0\SPT</SPTPath>
-</PropertyGroup>
-```
-
 ### Build command
 ```bash
-dotnet build BARF.sln
+dotnet build BoxesAtRef.sln
 ```
 
 ### Output structure
 ```
 dist/
-└── SPT/user/mods/BARF/
-    └── BARF.dll
+└── SPT/user/mods/BoxesAtRef/
+    └── BoxesAtRef.dll
 ```
-
----
-
-## 🧠 How the Mod Works
-
-- Loads crate/item definitions from `items.json`
-- Injects items into Ref trader’s assort at server startup
-- Creates:
-    - Item entries
-    - Barter scheme entries
-    - Loyalty level requirements
-- Generates GP-based barter schemes
-- Ensures dictionaries are initialized to avoid missing-key errors
-- Supports unlimited or restricted counts
-
-Everything is done in-memory (no base game files modified).
-
----
-
-## ⚠️ Known Limitations
-
-- Crates appear only under the **Ref** trader
-- Changing config requires a server restart
-- No default item pools included — you define your own
 
 ---
 
