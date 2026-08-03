@@ -4,7 +4,7 @@
 ### *A modern, fully updated revival of the classic BARF mod — now rebuilt for SPT 4.0*
 
 <img src="https://img.shields.io/badge/SPT-4.0.x-blue?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Mod-Type-Server-orange?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Mod_Type-Server-orange?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Status-Active-success?style=for-the-badge" />
 
 </div>
