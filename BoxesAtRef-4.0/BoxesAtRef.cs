@@ -1,53 +1,54 @@
 ﻿using System.Reflection;
 using BoxesAtRef.Models;
+using SPTarkov.Common.Models.Logging;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.DI;
 using SPTarkov.Server.Core.Helpers;
+using SPTarkov.Server.Core.Helpers.Server;
+using SPTarkov.Server.Core.Helpers.Traders;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
 using SPTarkov.Server.Core.Models.Enums;
 using SPTarkov.Server.Core.Models.Spt.Config;
 using SPTarkov.Server.Core.Models.Spt.Mod;
+using SPTarkov.Server.Core.Models.Spt.Tables;
 using SPTarkov.Server.Core.Models.Utils;
 using SPTarkov.Server.Core.Servers;
 using SPTarkov.Server.Core.Services;
 
 namespace BoxesAtRef;
 
-public record ModMetadata : AbstractModMetadata
+public record ModMetadata : IModMetadata
 {
-    public override string ModGuid { get; init; } = "com.SomeoneNamedAdam.barf";
-    public override string Name { get; init; } = "Boxes At Ref";
-    public override string Author { get; init; } = "SomoneNamedAdam";
-    public override List<string>? Contributors { get; init; }
-    public override SemanticVersioning.Version Version { get; init; } = new("2.0.0");
-    public override SemanticVersioning.Range SptVersion { get; init; } = new("~4.0.0");
-    public override List<string>? Incompatibilities { get; init; }
-    public override Dictionary<string, SemanticVersioning.Range>? ModDependencies { get; init; }
-    public override string? Url { get; init; } = "";
-    public override bool? IsBundleMod { get; init; } = false;
-    public override string? License { get; init; } = "MIT";
+    public string ModGuid { get; init; } = "com.SomeoneNamedAdam.barf";
+    public string Name { get; init; } = "Boxes At Ref";
+    public string Author { get; init; } = "SomoneNamedAdam";
+    public List<string>? Contributors { get; init; }
+    public SemanticVersioning.Version Version { get; init; } = new("3.0.0");
+    public SemanticVersioning.Range SptVersion { get; init; } = new("~4.1.2");
+    public bool HasPrepatcher { get; init; } = false;
+    public List<string>? Incompatibilities { get; init; }
+    public Dictionary<string, SemanticVersioning.Range>? ModDependencies { get; init; }
+    public string? Url { get; init; } = "";
+    public string? License { get; init; } = "MIT";
 }
 
-[Injectable(TypePriority = OnLoadOrder.PostDBModLoader + 1)]
+[Injectable(TypePriority = OnLoadOrder.PostLoad + 1)]
 public class BoxesAtRef (
     ISptLogger<BoxesAtRef> logger,
-    DatabaseService databaseService,
-    ConfigServer configServer,
+    TraderHelper traderHelper,
+    InventoryConfig inventoryConfig,
     ModHelper modHelper) : IOnLoad
 {
     private ModItemsToAdd _modItemsToAdd = null!;
     private ModCrateContents _modCrateContents = null!;
-    private Dictionary<MongoId, TemplateItem>? _itemDb;
-    private readonly InventoryConfig _inventoryConfig = configServer.GetConfig<InventoryConfig>();
     
-    public Task OnLoad()
+    public Task OnLoadAsync(CancellationToken cancellationToken)
     {
         string pathToMod = modHelper.GetAbsolutePathToModFolder(Assembly.GetExecutingAssembly());
         
         _modItemsToAdd = modHelper.GetJsonDataFromFile<ModItemsToAdd>(pathToMod, "database\\itemsToAdd.json");
         _modCrateContents = modHelper.GetJsonDataFromFile<ModCrateContents>(pathToMod, "database\\crateContents.json");
-        _itemDb = databaseService.GetItems();
 
         AddBoxesToRef();
 
@@ -57,13 +58,13 @@ public class BoxesAtRef (
 
     private void AddBoxesToRef()
     {
-        Trader refTrader = databaseService.GetTrader(Traders.REF)!;
+        TraderAssort refTrader = traderHelper.GetTraderAssortsByTraderId(Traders.REF)!;
         
         foreach (ModItemsToAdd.ItemsToAdd item in _modItemsToAdd.ListItemsToAdd)
         {
             string crateId = item.Id;
             
-            refTrader.Assort.Items.Add(new Item
+            refTrader.Items.Add(new Item
             {
                 Id = crateId,
                 Template = item.Template,
@@ -77,9 +78,9 @@ public class BoxesAtRef (
                 }
             });
             
-            refTrader.Assort.BarterScheme[crateId] = [];
+            refTrader.BarterScheme[crateId] = [];
             
-            refTrader.Assort.BarterScheme[crateId].Add([
+            refTrader.BarterScheme[crateId].Add([
                 new BarterScheme
                 {
                     Count = item.Price,
@@ -87,7 +88,7 @@ public class BoxesAtRef (
                 }
             ]);
 
-            refTrader.Assort.LoyalLevelItems[crateId] = item.LoyaltyLevel;
+            refTrader.LoyalLevelItems[crateId] = item.LoyaltyLevel;
 
             if (item.OpenId is null)
                 continue;
@@ -95,7 +96,7 @@ public class BoxesAtRef (
             ModCrateContents.CrateContents crateContents = _modCrateContents.ModContents[item.OpenId];
             
             // Add to inventory config with custom item pool
-            _inventoryConfig.RandomLootContainers[crateId] = new RewardDetails
+            inventoryConfig.RandomLootContainers[crateId] = new RewardDetails
             {
                 RewardCount = crateContents.RewardCount,
                 FoundInRaid = crateContents.FoundInRaid,
